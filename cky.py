@@ -146,13 +146,12 @@ def cky(words, grammar):
                                     # get only unaries nonterminals
                                     if len(pr.rhs()) == 1 and isinstance(pr.rhs()[0], Nonterminal):
                                         bbidx = nont.index(pr.rhs()[0])
-                                        if score[bbidx][w][w+1] > 0:
-                                            aa = pr.lhs()
-                                            bb = pr.rhs()
-                                            prob = pr.prob() * score[bbidx][begin][end]
-                                            if prob > score[nont.index(aa)][begin][end]:
-                                                score[nont.index(aa)][begin][end] = prob
-                                                added = True
+                                        aa = pr.lhs()
+                                        bb = pr.rhs()
+                                        prob = pr.prob() * score[bbidx][begin][end]
+                                        if prob > score[nont.index(aa)][begin][end]:
+                                            score[nont.index(aa)][begin][end] = prob
+                                            added = True
 
 
 
