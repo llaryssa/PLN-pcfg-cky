@@ -5,6 +5,7 @@ from nltk import treetransforms
 from nltk import induce_pcfg
 from nltk import nonterminals
 from nltk.parse import pchart
+from  nltk.tree import Tree
 
 from nltk import PCFG
 
@@ -14,11 +15,17 @@ from random import shuffle
 import numpy as np
 np.set_printoptions(suppress=True)
 
-# treeb = treebank.fileids()
+treeb = treebank.fileids()
+print(treebank.parsed_sents('wsj_0001.mrg')[0])
+
+
+
+
 # shuffle(treeb)
 # limit = int(len(treeb)*.75)
 # limit = int(len(treeb)*.15)
 # treeb1 = treeb[:limit]
+# treeb1 = treeb[:1]
 # treeb2 = treeb[limit:]
 #
 # prod = Set([])
@@ -28,7 +35,8 @@ np.set_printoptions(suppress=True)
 #         # tree.collapse_unary(collapsePOS = False)
 #         tree.chomsky_normal_form(horzMarkov = 2)
 #
-#         # print len(tree.productions())
+#         print treebank.words(item)
+#         print type(tree)
 #
 #         productions += tree.productions()
 #
@@ -42,8 +50,7 @@ np.set_printoptions(suppress=True)
 #
 #
 # print len(grammar.productions()), len(prod)
-#
-#
+
 
 
 
@@ -75,9 +82,62 @@ print pcfg.productions(lhs=Nonterminal('V'), rhs='people')
 
 print "------------"
 
-from nltk.parse import ViterbiParser
-parser = ViterbiParser(pcfg)
-# print list(parser.parse("fish fish tanks".split()))
+foundRoot = False
+parsingTree = ""
+indexMaxScore = -1;
+
+def buildTree(score, back, nwords, nont, currentBack, indexI, indexJ):
+    global parsingTree
+    global foundRoot
+    global indexMaxScore
+
+    if not foundRoot:
+        maxScore = -1;
+
+        for i in range(0, len(nont)):
+            if score[i][0][nwords] > maxScore:
+                maxScore = score[i][0][nwords]
+                indexMaxScore = i
+        foundRoot = True
+        top = nont[indexMaxScore]
+        currentBack = back[indexMaxScore][0][nwords]
+        parsingTree = parsingTree + "{}-(0:{})".format(top,nwords)
+
+        buildTree(score,back,nwords,nont,currentBack, 0, nwords)
+    else:
+        if len(currentBack) == 3:
+
+            split = currentBack[0]
+            firstNT = currentBack[1]
+            firstNTIndex = nont.index(firstNT)
+            secondNT = currentBack[2]
+            secondNTIndex = nont.index(secondNT)
+
+            parsingTree = parsingTree + ", {}-({}:{})".format(firstNT, indexI, split)
+            currentBack = back[firstNTIndex][indexI][split];
+            buildTree(score, back, nwords, nont, currentBack, indexI, split)
+
+            parsingTree = parsingTree + ", {}-({}:{})".format(secondNT, split, indexJ)
+            currentBack = back[secondNTIndex][split][indexJ];
+            buildTree(score, back, nwords, nont, currentBack, split, indexJ)
+
+
+        elif len(currentBack) == 1:
+
+            nt = currentBack[0]
+            if nt in nont:
+                ntIndex = nont.index(nt)
+
+
+
+                parsingTree = parsingTree + ", {}-({}:{})".format(nt, indexI, indexJ)
+                currentBack = back[ntIndex][indexI][indexJ];
+                buildTree(score, back, nwords, nont, currentBack, indexI, indexJ)
+
+            else: #terminal
+
+                print nt
+
 
 
 
@@ -97,7 +157,10 @@ def cky(words, grammar):
 
     ####
     score = np.zeros((nnont, nwords+1, nwords+1))
+    back = [[[{} for j in range(nwords + 1)] for i in range(nwords + 1)] for m in range(nnont)]
+
     print "score shape: ", score.shape
+
 
     ####
     for w in range(0,nwords): # para todas
@@ -106,6 +169,7 @@ def cky(words, grammar):
         for p in prod:
             idx = nont.index(p.lhs())
             score[idx,w,w+1] = p.prob()
+            back[idx][w][w+1] = [token]
         ### handle unaries
         added = True
         while added:
@@ -120,6 +184,7 @@ def cky(words, grammar):
                         prob = pr.prob() * score[bbidx][w][w+1]
                         if prob > score[nont.index(aa)][w][w+1]:
                             score[nont.index(aa)][w][w+1] = prob
+                            back[nont.index(aa)][w][w+1] = [bb[0]]
                             added = True
 
     for span in range(2,nwords+1):
@@ -138,6 +203,8 @@ def cky(words, grammar):
                         prob = pr.prob() * score[bbidx][begin][split] * score[ccidx][split][end]
                         if prob > score[aaidx][begin][end]:
                             score[aaidx][begin][end] = prob
+                            back[aaidx][begin][end] = [split, bb, cc]
+
                             ### handle unaries
                             added = True
                             while added:
@@ -151,11 +218,67 @@ def cky(words, grammar):
                                         prob = pr.prob() * score[bbidx][begin][end]
                                         if prob > score[nont.index(aa)][begin][end]:
                                             score[nont.index(aa)][begin][end] = prob
+                                            back[nont.index(aa)][begin][end] = [bb[0]]
                                             added = True
 
 
 
     print "nonterminals: ", nont
+    print "Score"
     print score
+    print "Back"
+    print back
+
+    buildTree(score,back,nwords,nont,{},-1,-1)
+    print parsingTree, type(parsingTree)
 
 cky("fish people fish tanks".split(), pcfg)
+
+
+
+
+
+
+
+# #### cky do nltk
+# from nltk.parse import ViterbiParser
+# parser = ViterbiParser(pcfg)
+# print "\n\n", list(parser.parse("fish people fish tanks".split()))
+#
+# s = '(S (NP-SBJ (NNP Mr.) (NNP Vinken)) (VP (VBZ is) (NP-PRD (NP (NN chairman)) (PP (IN of) (NP (NP (NNP Elsevier) (NNP N.V.)) (, ,) (NP (DT the) (NNP Dutch) (VBG publishing) (NN group)))))) (. .))'
+# t = Tree.fromstring(s)
+# print t, "\n----"
+#
+# tt = treebank.parsed_sents('wsj_0001.mrg')[1]
+# print tt
+# print "-----"
+# print tt[0]
+# print "-----"
+# print tt[1]
+# print "-----"
+# print tt[1,0]
+# print "-----"
+# print tt[1,1]
+# print "-----"
+#
+# print t==tt
+
+
+
+st = '(S (NP (NP (N fish)) (NP (N people))) (VP (V fish) (NP (N tanks))))'
+tree = Tree.fromstring(st)
+print tree
+
+def convert(tree, index=0, parsing=[]):
+    size = len(tree.leaves())
+    parsing.append([tree.label(),index,index+size])
+    for child in tree:
+        if isinstance(child, Tree):
+            pars, index = convert(child, index, parsing)
+        else:
+            index += 1
+    return parsing, index
+
+
+parsing, index = convert(tree)
+print parsing
