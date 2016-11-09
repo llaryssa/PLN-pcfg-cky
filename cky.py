@@ -79,6 +79,9 @@ def cky(words, grammar, nont):
     ####
     for w in range(0, nwords):  # para todas
         token = words[w]
+
+        print token
+
         prod = grammar.productions(rhs=token)
         for p in prod:
             idx = nont.index(p.lhs())
@@ -105,6 +108,10 @@ def cky(words, grammar, nont):
         for begin in range(0, nwords - span + 1):
             end = begin + span
             for split in range(begin + 1, end):
+
+                # from datetime import datetime
+                # print begin, split, end, str(datetime.now())
+
                 for pr in grammar.productions():
                     # get only binaries
                     if len(pr.rhs()) == 2:
@@ -137,6 +144,7 @@ def cky(words, grammar, nont):
                                             score[nont.index(aa)][begin][end] = prob
                                             back[nont.index(aa)][begin][end] = [bb[0]]
                                             added = True
+
     # print "nonterminals: ", nont
     # print "Score"
     # print score
@@ -216,38 +224,40 @@ def evaluate(candidate,gold):
 
 
 
-
-grammarstr = """S -> NP VP [0.9]
-         S -> VP [0.1]
-         VP -> V NP [0.5] | V [0.1] | V VP_V [0.3] | V PP [0.1]
-         VP_V -> NP PP [1.0]
-         NP -> NP NP [0.1] | NP PP [0.2] | N [0.7]
-         PP -> P NP [1.0]
-         N -> 'people' [0.5] | 'fish' [0.2] | 'tanks' [0.2] | 'rods' [0.1]
-         V -> 'people' [0.1] | 'fish' [0.6] | 'tanks' [0.3]
-         P -> 'with' [1.0]
-         """
-grammar = nltk.PCFG.fromstring(grammarstr)
-
-nont = set()
-for p in grammar.productions():
-    nont.add(p.lhs())
-nont = list(nont)
-
-treestr1 = '(S (NP (NP (N fish)) (NP (N people))) (VP (V fish) (NP (N tanks))))'
-treestr2 = '(S (NP (N people)) (VP (V fish) (PP (P with) (NP (N tanks)))))'
-
-trees = [Tree.fromstring(treestr1), Tree.fromstring(treestr2)]
-sentences = ['fish people fish tanks', 'people fish with tanks']
-
-for sent in range(0, len(sentences)):
-    print "\nsentence: ", sentences[sent]
-    gold = convert(trees[sent], 0, [])[0]
-    estimate = cky(sentences[sent].split(), grammar, nont)
-    evaluate(estimate, gold)
-    print "    gold: ", gold
-    print "estimate: ", estimate
-
+#
+# grammarstr = """S -> NP VP [0.9]
+#          S -> VP [0.1]
+#          VP -> V NP [0.5] | V [0.1] | V VP_V [0.3] | V PP [0.1]
+#          VP_V -> NP PP [1.0]
+#          NP -> NP NP [0.1] | NP PP [0.2] | N [0.7]
+#          PP -> P NP [1.0]
+#          N -> 'people' [0.5] | 'fish' [0.2] | 'tanks' [0.2] | 'rods' [0.1]
+#          V -> 'people' [0.1] | 'fish' [0.6] | 'tanks' [0.3]
+#          P -> 'with' [1.0]
+#          """
+# grammar = nltk.PCFG.fromstring(grammarstr)
+#
+# nont = set()
+# for p in grammar.productions():
+#     nont.add(p.lhs())
+# nont = list(nont)
+#
+# treestr1 = '(S (NP (NP (N fish)) (NP (N people))) (VP (V fish) (NP (N tanks))))'
+# treestr2 = '(S (NP (N people)) (VP (V fish) (PP (P with) (NP (N tanks)))))'
+# treestr3 = '(S (NP (N people)) (VP (V fish) (NP (NP (N tanks) (PP (P with) (NP (N rods)))))))'
+# treestr4 = '(S (NP (N people)) (VP (V fish)))'
+#
+# trees = [Tree.fromstring(treestr1), Tree.fromstring(treestr2), Tree.fromstring(treestr3), Tree.fromstring(treestr4)]
+# sentences = ['fish people fish tanks', 'people fish with tanks', 'people fish tanks with rods', 'people fish']
+#
+# for sent in range(0, len(sentences)):
+#     print "\n\nsentence: ", sentences[sent]
+#     gold = convert(trees[sent], 0, [])[0]
+#     estimate = cky(sentences[sent].split(), grammar, nont)
+#     evaluate(estimate, gold)
+#     print "    gold: ", gold
+#     print "estimate: ", estimate
+#
 
 
 
@@ -259,53 +269,53 @@ for sent in range(0, len(sentences)):
 
 
 
-# treeb = treebank.fileids()
-# shuffle(treeb)
-# limit = int(len(treeb)*.75)
-# # limit = int(len(treeb)*.15)
-# treeb1 = treeb[:limit]
-# treeb2 = treeb[limit:]
-#
-# ### setting the grammar
-# prod = Set([])
-# productions = []
-# for item in treeb1:
-#     for tree in treebank.parsed_sents(item):
-#         tree.collapse_unary(collapsePOS = False)
-#         tree.chomsky_normal_form(horzMarkov = 2)
-#         productions += tree.productions()
-#
-# S = Nonterminal('S')
-# grammar = induce_pcfg(S, productions)
-#
-# ### setting nonterminals
-# nont = set()
-# for p in grammar.productions():
-#     nont.add(p.lhs())
-# nont = list(nont)
-#
-# print "grammar:\nnumber of productions:", len(grammar.productions())
-# print "number of nonterminals:", len(nont)
-#
-# ### parsing
-# for item in treeb2:
-#     for tree in treebank.parsed_sents(item):
-#
-#         from datetime import datetime
-#         print str(datetime.now())
-#
-#         # get groundtruth
-#         gold = convert(tree, 0, [])[0]
-#
-#         #get estimate
-#         sentence = tree.leaves()
-#         estimate = cky(sentence, grammar, nont)
-#
-#         evaluate(estimate, gold)
-#
-#         print "    gold: ", gold
-#         print "estimate: ", estimate
-#         print str(datetime.now())
+treeb = treebank.fileids()
+shuffle(treeb)
+limit = int(len(treeb)*.75)
+# limit = int(len(treeb)*.15)
+treeb1 = treeb[:limit]
+treeb2 = treeb[limit:]
+
+### setting the grammar
+prod = Set([])
+productions = []
+for item in treeb1:
+    for tree in treebank.parsed_sents(item):
+        tree.collapse_unary(collapsePOS = False)
+        tree.chomsky_normal_form(horzMarkov = 2)
+        productions += tree.productions()
+
+S = Nonterminal('S')
+grammar = induce_pcfg(S, productions)
+
+### setting nonterminals
+nont = set()
+for p in grammar.productions():
+    nont.add(p.lhs())
+nont = list(nont)
+
+print "grammar:\nnumber of productions:", len(grammar.productions())
+print "number of nonterminals:", len(nont)
+
+### parsing
+for item in treeb2:
+    for tree in treebank.parsed_sents(item):
+
+        from datetime import datetime
+        print str(datetime.now())
+
+        # get groundtruth
+        gold = convert(tree, 0, [])[0]
+
+        #get estimate
+        sentence = tree.leaves()
+        estimate = cky(sentence, grammar, nont)
+
+        evaluate(estimate, gold)
+
+        print "    gold: ", gold
+        print "estimate: ", estimate
+        print str(datetime.now())
 
 
 
